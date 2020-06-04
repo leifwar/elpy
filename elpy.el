@@ -435,6 +435,7 @@ This option need to bet set through `customize' or `customize-set-variable' to b
     (define-key map (kbd "p") 'elpy-pdb-break-at-point)
     (define-key map (kbd "e") 'elpy-pdb-debug-last-exception)
     (define-key map (kbd "b") 'elpy-pdb-toggle-breakpoint-at-point)
+    (define-key map (kbd "t") 'elpy-pdb-debug-test)
     map)
   "Key map for the shell related commands.")
 (fset 'elpy-pdb-map elpy-pdb-map)
@@ -2012,6 +2013,24 @@ prefix is given, run all tests in the current project."
                  nil nil nil)
       ;; Else, run only this test
       (apply elpy-test-runner current-test))))
+
+(defun elpy-pdb-debug-test (&optional test-whole-project)
+  "Run debug tests on the current test, or the whole project.
+
+If there is a test at point, run that test. If not, or if a
+prefix is given, run all tests in the current project."
+  (interactive "P")
+  (let ((current-test (elpy-test-at-point))
+        (pytest-cmd (car elpy-test-pytest-runner-command)))
+    (if test-whole-project
+        ;; With prefix arg, test the whole project.
+        (realgud:pdb (concat pytest-cmd " --trace " (car current-test)))
+      (let ((test-file (car (cdr current-test)))
+            (test-func (car (last current-test))))
+        (if test-func
+            (realgud:pdb (concat pytest-cmd " --trace " test-file "::" test-func))
+          (realgud:pdb (concat pytest-cmd " --trace " test-file )))))))
+
 
 (defun elpy-set-test-runner (test-runner)
   "Tell Elpy to use TEST-RUNNER to run tests.
